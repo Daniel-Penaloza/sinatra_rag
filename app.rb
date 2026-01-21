@@ -15,6 +15,9 @@ require_relative "lib/services/chat_agent"
 require_relative "lib/models/document"
 require_relative "lib/models/document_chunk"
 
+Dir[File.join(__dir__, "lib/models/**/*.rb")].each do |file|
+  require file
+end
 
 set :bind, "0.0.0.0"
 set :port, 4567
