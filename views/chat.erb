@@ -1,0 +1,27 @@
+<h2>Chat RAG</h2>
+
+<form class="card" action="/chat" method="post">
+  <label>Pregunta</label>
+  <textarea name="message" placeholder="Pregunta algo sobre los documentos..."></textarea>
+  <br/>
+  <button type="submit">Enviar</button>
+</form>
+
+<h3>Conversación</h3>
+<% if @messages.empty? %>
+  <p class="muted">Aún no hay mensajes. Sube un documento y pregunta.</p>
+<% else %>
+  <% @messages.each do |m| %>
+    <div class="card">
+      <div><b><%= m[:role] %></b> <span class="muted">· <%= m[:created_at] %></span></div>
+      <div class="msg"><%= m[:content] %></div>
+
+      <% if m[:role] == "assistant" && m[:sources] && m[:sources].is_a?(Array) && !m[:sources].empty? %>
+        <div class="muted">
+          Fuentes:
+          <%= m[:sources].map { |s| "doc=#{s["doc_id"] || s[:doc_id]} chunk=#{s["chunk_id"] || s[:chunk_id]}" }.join(" · ") %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

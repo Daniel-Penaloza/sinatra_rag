@@ -1,0 +1,30 @@
+<h2>Subir documento</h2>
+
+<form class="card" action="/documents" method="post" enctype="multipart/form-data">
+  <label>Título</label>
+  <input type="text" name="title" placeholder="Ej. Políticas de seguridad" />
+
+  <br/><br/>
+  <label>Archivo (solo .pdf o .txt)</label>
+  <input type="file" name="file" accept=".pdf,.txt" required />
+
+  <br/><br/>
+  <button type="submit">Procesar e indexar</button>
+  <p class="muted">
+    Nota: PDFs escaneados (sin texto) fallarán. Para eso necesitarías OCR.
+  </p>
+</form>
+
+<h3>Documentos</h3>
+<% if @documents.empty? %>
+  <p class="muted">Aún no hay documentos.</p>
+<% else %>
+  <% @documents.each do |d| %>
+    <div class="card">
+      <div><b><%= d[:title] %></b></div>
+      <div class="muted">
+        id=<%= d[:id] %> · <%= d[:filename] %> · <%= d[:content_type] %> · <%= d[:created_at] %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
