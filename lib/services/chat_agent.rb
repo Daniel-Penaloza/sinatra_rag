@@ -1,4 +1,5 @@
 require "openai"
+require_relative "../config"
 
 module Services
   class ChatAgent
@@ -31,7 +32,7 @@ module Services
 
 
       resp = @client.chat.completions.create(
-        model: ENV.fetch("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+        model: Config::OPENAI_CHAT_MODEL,
         messages: [
           { 
             role: "system",

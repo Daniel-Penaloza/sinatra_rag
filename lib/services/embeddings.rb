@@ -1,4 +1,5 @@
 require "openai"
+require_relative "../config"
 
 module Services
   class Embeddings
@@ -8,7 +9,7 @@ module Services
 
     def embed(input_text)
       response = @client.embeddings.create(
-        model: ENV.fetch("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        model: Config::OPENAI_EMBEDDING_MODEL,
         input: input_text,
         encoding_format: 'float'
       )
