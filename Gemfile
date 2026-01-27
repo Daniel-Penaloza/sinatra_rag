@@ -12,4 +12,9 @@ gem "pdf-reader"    # PDFs con texto (no escaneados)
 gem "openai"        # SDK OpenAI (ajusta según tu setup)
 gem "json"
 gem "securerandom"
-gem "byebug"
+gem "sidekiq"
+gem "redis"
+
+group :development, :test do
+  gem "byebug"
+end

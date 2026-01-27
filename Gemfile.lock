@@ -41,11 +41,21 @@ GEM
       rack (>= 3.0.0)
     rackup (2.3.1)
       rack (>= 3)
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.26.3)
+      connection_pool
     ruby-rc4 (0.1.5)
     ruby2_keywords (0.0.5)
     securerandom (0.4.1)
     sequel (5.100.0)
       bigdecimal
+    sidekiq (8.1.0)
+      connection_pool (>= 3.0.0)
+      json (>= 2.16.0)
+      logger (>= 1.7.0)
+      rack (>= 3.2.0)
+      redis-client (>= 0.26.0)
     sinatra (4.2.1)
       logger (>= 1.6.0)
       mustermann (~> 3.0)
@@ -76,8 +86,10 @@ DEPENDENCIES
   pgvector
   puma
   rackup
+  redis
   securerandom
   sequel
+  sidekiq
   sinatra
   sinatra-contrib
 

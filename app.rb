@@ -3,8 +3,11 @@ require "sinatra"
 require "securerandom"
 require "fileutils"
 require "json"
+require "sidekiq"
 require "byebug"
 
+require_relative "config/sidekiq"
+require_relative "lib/jobs/document_processo_job"
 require_relative "lib/db"
 require_relative "lib/text_extractors/pdf_extractor"
 require_relative "lib/text_extractors/txt_extractor"
@@ -26,6 +29,8 @@ set :public_folder, File.expand_path("public", __dir__)
 UPLOAD_DIR = File.expand_path("public/uploads", __dir__)
 FileUtils.mkdir_p(UPLOAD_DIR)
 
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
 helpers do
   def db = DB
 
@@ -33,7 +38,14 @@ helpers do
     key = request.cookies["chat_session_key"]
     if key.nil? || key.strip.empty?
       key = SecureRandom.uuid
-      response.set_cookie("chat_session_key", value: key, path: "/", httponly: true)
+      response.set_cookie(
+        "chat_session_key",
+        value: key,
+        path: "/",
+        httponly: true,
+        secure: ENV['RACK_ENV'] == 'production',
+        same_site: :strict
+      )
     end
 
     row = db[:chat_sessions].where(session_key: key).first
@@ -44,7 +56,8 @@ helpers do
     row
   end
 
-  def allowed_file?(filename, mime)
+  def allowed_file?(filename, mime, size)
+    return false if size > MAX_FILE_SIZE
     ext = File.extname(filename).downcase
     return true if ext == ".pdf" && mime == "application/pdf"
     return true if ext == ".txt" && (mime == "text/plain" || mime.nil? || mime.empty?)
@@ -69,8 +82,9 @@ post "/documents" do
   filename = file[:filename]
   tempfile = file[:tempfile]
   mime = file[:type]
+  size = (tempfile.size.to_f / 1024 / 1024).round(2)
 
-  halt 400, "Solo PDF o TXT" unless allowed_file?(filename, mime)
+  halt 400, "Solo PDF o TXT" unless allowed_file?(filename, mime, size)
 
   storage_name = "#{SecureRandom.uuid}#{File.extname(filename).downcase}"
   storage_path = File.join(UPLOAD_DIR, storage_name)
@@ -86,35 +100,7 @@ post "/documents" do
     storage_path: storage_path
   )
 
-  # extraer texto
-  text =
-    if File.extname(filename).downcase == ".pdf"
-      TextExtractors::PdfExtractor.extract(storage_path)
-    else
-      TextExtractors::TxtExtractor.extract(storage_path)
-    end
-
-  halt 400, "El documento no contiene texto (¿PDF escaneado?)" if text.strip.empty?
-
-  chunks = Services::Chunker.split(text, size: 1100, overlap: 200)
-  embedder = Services::Embeddings.new
-
-  chunks.each_with_index do |chunk, idx|
-    emb = embedder.embed(chunk)
-    next if emb.nil?
-
-    DocumentChunk.create(
-      document_id: doc_id,
-      chunk_index: idx,
-      content: chunk,
-      embedding: emb,          # ✅ Array<Float>
-      char_count: chunk.length
-    )
-
-  end
-
-  # Recomendado para ivfflat tras insertar: ANALYZE - indice de busqueda aproximada de vecinos
-  db.run("ANALYZE document_chunks")
+  Jobs::DocumentProcessorJob.perform_async(doc_id, storage_path, filename)
 
   redirect "/upload"
 end
